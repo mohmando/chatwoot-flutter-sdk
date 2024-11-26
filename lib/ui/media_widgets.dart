@@ -2,8 +2,8 @@
 import 'package:chatwoot_sdk/data/remote/responses/csat_survey_response.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_chat_theme.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_l10n.dart';
+import 'package:chatwoot_sdk/ui/link_preview.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_link_previewer/flutter_link_previewer.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -230,52 +230,59 @@ class _TextChatMessageState extends State<TextChatMessage> {
 
   @override
   Widget build(BuildContext context) {
+    print("link: $messageLink");
     final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context));
     final textColor = widget.isMine ? widget.theme.sentMessageBodyTextStyle.color: widget.theme.receivedMessageBodyTextStyle.color;
-
-    return LinkPreview(
-      enableAnimation: true,
-      metadataTextStyle: widget.theme.receivedMessageBodyLinkTextStyle,
-      metadataTitleStyle: widget.theme.receivedMessageBodyBoldTextStyle,
-      onLinkPressed: (link){
-        launchUrl(Uri.parse(link));
-      },
-      openOnPreviewImageTap: true,
-      openOnPreviewTitleTap: true,
-      onPreviewDataFetched: (data){
-        widget.message.metadata?['previewData'] = data;
-        widget.onPreviewFetched(widget.message, data);
-      },
-      padding: EdgeInsets.symmetric(
-        horizontal: widget.theme.messageInsetsHorizontal,
-        vertical: widget.theme.messageInsetsVertical,
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: widget.theme.messageInsetsVertical, horizontal: widget.theme.messageInsetsHorizontal),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if(messageLink != null)
+            LinkPreview(
+              url: messageLink!, // This disables tap event
+            ),
+          if(messageLink != null)
+            SizedBox(height: 8.0),
+          if(messageLink != widget.message.text.trim())
+            MarkdownBody(
+              data: widget.message.text,
+              onTapLink: (text,href,title){
+                if(href != null){
+                  launchUrl(Uri.parse(href));
+                }
+              },
+              styleSheet: styleSheet.copyWith(
+                code: widget.isMine ? widget.theme.sentMessageBodyCodeTextStyle: widget.theme.receivedMessageBodyCodeTextStyle,
+                p: widget.isMine ? widget.theme.sentMessageBodyTextStyle: widget.theme.receivedMessageBodyTextStyle,
+                h1: styleSheet.h1?.copyWith(color: textColor),
+                h2: styleSheet.h2?.copyWith(color: textColor),
+                h3: styleSheet.h3?.copyWith(color: textColor),
+                h4: styleSheet.h4?.copyWith(color: textColor),
+                h5: styleSheet.h5?.copyWith(color: textColor),
+                h6: styleSheet.h6?.copyWith(color: textColor),
+                tableBody: styleSheet.tableBody?.copyWith(color: textColor),
+                tableHead: styleSheet.tableHead?.copyWith(color: textColor),
+                a: widget.isMine ? styleSheet.a?.copyWith(color: Colors.white): styleSheet.a?.copyWith(color: widget.theme.primaryColor),
+              )
+          ),
+        ],
       ),
-      previewData: widget.message.metadata?["previewData"],
-      text: widget.message.text,
-      textWidget: MarkdownBody(
-          data: widget.message.text,
-          onTapLink: (text,href,title){
-            if(href != null){
-              launchUrl(Uri.parse(href));
-            }
-          },
-          styleSheet: styleSheet.copyWith(
-            code: widget.isMine ? widget.theme.sentMessageBodyCodeTextStyle: widget.theme.receivedMessageBodyCodeTextStyle,
-            p: widget.isMine ? widget.theme.sentMessageBodyTextStyle: widget.theme.receivedMessageBodyTextStyle,
-            h1: styleSheet.h1?.copyWith(color: textColor),
-            h2: styleSheet.h2?.copyWith(color: textColor),
-            h3: styleSheet.h3?.copyWith(color: textColor),
-            h4: styleSheet.h4?.copyWith(color: textColor),
-            h5: styleSheet.h5?.copyWith(color: textColor),
-            h6: styleSheet.h6?.copyWith(color: textColor),
-            tableBody: styleSheet.tableBody?.copyWith(color: textColor),
-            tableHead: styleSheet.tableHead?.copyWith(color: textColor),
-            a: widget.isMine ? widget.theme.sentMessageBodyLinkTextStyle: widget.theme.receivedMessageBodyLinkTextStyle,
-          )
-      ),
-      userAgent: "flutter",
-      width: widget.maxWidth.toDouble(),
     );
+  }
+
+  String? get messageLink {
+    // Regular expression to match URLs
+    final RegExp urlRegex = RegExp(
+      r'(https?:\/\/[^\s]+)', // Match http or https URLs
+      caseSensitive: false,
+    );
+
+    // Find the first match
+    final Match? match = urlRegex.firstMatch(widget.message.text);
+
+    // If a match is found, return the matched string; otherwise, return null
+    return match != null ? match.group(0) : null;
   }
 }
 

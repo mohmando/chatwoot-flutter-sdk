@@ -268,7 +268,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
         _handleMessageSent(textMessage);
         widget.onMessageSent?.call(chatwootMessage);
       },
-      onConversationResolved: () {
+      onConversationResolved: (conversationUuid) {
 
         final resolvedMessage = types.TextMessage(
             id: "resolved",
@@ -284,6 +284,9 @@ class _ChatwootChatState extends State<ChatwootChat> {
             author: types.User(
                 id: idGen.v4(),
                 imageUrl: botImageUrl),
+            metadata: {
+              "conversationUuid": conversationUuid
+            },
             status: types.Status.delivered);
         _addMessage(csatMessage);
       },
@@ -663,7 +666,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
                       message: message,
                       maxWidth: messageWidth,
                       sendCsatResults: (rating, feedback){
-                        chatwootClient?.sendCsatSurveyResults(rating, feedback);
+                        chatwootClient?.sendCsatSurveyResults(message.metadata!['conversationUuid'], rating, feedback);
                       },
                   );
                 },

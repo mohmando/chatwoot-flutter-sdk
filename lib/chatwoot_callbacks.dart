@@ -63,7 +63,7 @@ class ChatwootCallbacks {
   void Function(List<ChatwootMessage>)? onMessagesRetrieved;
 
   ///Triggered when an agent resolves the current conversation
-  void Function()? onConversationResolved;
+  void Function(String)? onConversationResolved;
 
   ///Triggered when csat feedbaack is sent
   void Function(CsatSurveyFeedbackResponse)? onCsatSurveyResponseRecorded;

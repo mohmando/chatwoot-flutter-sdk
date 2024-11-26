@@ -50,7 +50,6 @@ class ChatwootClient {
   void loadMessages() async {
     _repository.getPersistedMessages();
     await _repository.getMessages();
-    await _repository.getCsatFeedback();
   }
 
   /// Sends chatwoot message. The echoId is your temporary message id. When message sends successfully
@@ -70,8 +69,8 @@ class ChatwootClient {
   }
 
   ///Send chatwoot csat survey results.
-  Future<void> sendCsatSurveyResults(int rating, String feedback) async {
-    _repository.sendCsatFeedBack(SendCsatSurveyRequest(rating: rating, feedbackMessage: feedback));
+  Future<void> sendCsatSurveyResults(String conversationUuid, int rating, String feedback) async {
+    _repository.sendCsatFeedBack(conversationUuid, SendCsatSurveyRequest(rating: rating, feedbackMessage: feedback));
   }
 
   ///Disposes chatwoot client and cancels all stream subscriptions

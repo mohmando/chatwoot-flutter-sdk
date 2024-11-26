@@ -356,28 +356,37 @@ class MockChatwootClientService extends _i1.Mock
 
   @override
   _i12.Future<_i8.CsatSurveyFeedbackResponse> sendCsatFeedBack(
-          _i16.SendCsatSurveyRequest? request) =>
+    String? conversationUuid,
+    _i16.SendCsatSurveyRequest? request,
+  ) =>
       (super.noSuchMethod(
         Invocation.method(
           #sendCsatFeedBack,
-          [request],
+          [
+            conversationUuid,
+            request,
+          ],
         ),
         returnValue: _i12.Future<_i8.CsatSurveyFeedbackResponse>.value(
             _FakeCsatSurveyFeedbackResponse_6(
           this,
           Invocation.method(
             #sendCsatFeedBack,
-            [request],
+            [
+              conversationUuid,
+              request,
+            ],
           ),
         )),
       ) as _i12.Future<_i8.CsatSurveyFeedbackResponse>);
 
   @override
-  _i12.Future<_i8.CsatSurveyFeedbackResponse?> getCsatFeedback() =>
+  _i12.Future<_i8.CsatSurveyFeedbackResponse?> getCsatFeedback(
+          String? conversationUuid) =>
       (super.noSuchMethod(
         Invocation.method(
           #getCsatFeedback,
-          [],
+          [conversationUuid],
         ),
         returnValue: _i12.Future<_i8.CsatSurveyFeedbackResponse?>.value(),
       ) as _i12.Future<_i8.CsatSurveyFeedbackResponse?>);
@@ -575,7 +584,7 @@ class MockChatwootCallbacks extends _i1.Mock implements _i18.ChatwootCallbacks {
       );
 
   @override
-  set onConversationResolved(void Function()? _onConversationResolved) =>
+  set onConversationResolved(void Function(String)? _onConversationResolved) =>
       super.noSuchMethod(
         Invocation.setter(
           #onConversationResolved,

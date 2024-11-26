@@ -43,9 +43,7 @@ abstract class ChatwootRepository {
 
   void sendAction(ChatwootActionType action);
 
-  Future<void> sendCsatFeedBack(SendCsatSurveyRequest request);
-
-  Future<void> getCsatFeedback();
+  Future<void> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request);
 
   Future<void> clear();
 
@@ -133,22 +131,9 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
   }
 
   @override
-  Future<void> getCsatFeedback() async{
+  Future<void> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request) async{
     try {
-      final feedback = await clientService.getCsatFeedback();
-      if(feedback!=null){
-        callbacks.onCsatSurveyResponseRecorded?.call(feedback);
-      }
-    } on ChatwootClientException catch (e) {
-      callbacks.onError?.call(
-          ChatwootClientException(e.cause, e.type));
-    }
-  }
-
-  @override
-  Future<void> sendCsatFeedBack(SendCsatSurveyRequest request) async{
-    try {
-      final feedback = await clientService.sendCsatFeedBack(request);
+      final feedback = await clientService.sendCsatFeedBack(conversationUuid, request);
       callbacks.onCsatSurveyResponseRecorded?.call(feedback);
     } on ChatwootClientException catch (e) {
       callbacks.onError?.call(
@@ -214,9 +199,10 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
           chatwootEvent.message?.data?.id ==
               (localStorage.conversationDao.getConversation()?.id ?? 0)) {
         //delete conversation result
+        final conversationUuid = localStorage.conversationDao.getConversation()!.uuid;
         localStorage.conversationDao.deleteConversation();
         localStorage.messagesDao.clear();
-        callbacks.onConversationResolved?.call();
+        callbacks.onConversationResolved?.call(conversationUuid);
       } else if (chatwootEvent.message?.event ==
           ChatwootEventMessageType.presence_update) {
         final presenceStatuses =

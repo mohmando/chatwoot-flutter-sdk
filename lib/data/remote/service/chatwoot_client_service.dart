@@ -35,9 +35,9 @@ abstract class ChatwootClientService {
 
   Future<ChatwootMessage> updateMessage(String messageIdentifier, update);
 
-  Future<CsatSurveyFeedbackResponse> sendCsatFeedBack(SendCsatSurveyRequest request);
+  Future<CsatSurveyFeedbackResponse> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request);
 
-  Future<CsatSurveyFeedbackResponse?> getCsatFeedback();
+  Future<CsatSurveyFeedbackResponse?> getCsatFeedback(String conversationUuid);
 
   Future<List<ChatwootMessage>> getAllMessages();
 
@@ -224,10 +224,10 @@ class ChatwootClientServiceImpl extends ChatwootClientService {
   }
 
   @override
-  Future<CsatSurveyFeedbackResponse?> getCsatFeedback() async{
+  Future<CsatSurveyFeedbackResponse?> getCsatFeedback(String conversationUuid) async{
     try {
       final response = await _dio.get(
-          "/public/api/v1/csat_survey/${ChatwootClientApiInterceptor.INTERCEPTOR_CONVERSATION_IDENTIFIER_PLACEHOLDER}");
+          "/public/api/v1/csat_survey/$conversationUuid");
       if ((response.statusCode ?? 0).isBetween(199, 300)) {
         return response.data != null ? CsatSurveyFeedbackResponse.fromJson(response.data) : null;
       } else {
@@ -242,11 +242,17 @@ class ChatwootClientServiceImpl extends ChatwootClientService {
   }
 
   @override
-  Future<CsatSurveyFeedbackResponse> sendCsatFeedBack(SendCsatSurveyRequest request) async{
+  Future<CsatSurveyFeedbackResponse> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request) async{
     try {
       final response = await _dio.post(
-          "/public/api/v1/csat_survey/${ChatwootClientApiInterceptor.INTERCEPTOR_CONVERSATION_IDENTIFIER_PLACEHOLDER}",
-          data: request.toJson());
+          "/public/api/v1/csat_survey/$conversationUuid",
+          data: {
+            "message":{
+              "submitted_values":{
+                "csat_survey_response": request.toJson()
+              }
+            }
+          });
       if ((response.statusCode ?? 0).isBetween(199, 300)) {
         return CsatSurveyFeedbackResponse.fromJson(response.data);
       } else {

@@ -168,21 +168,17 @@ class MockChatwootRepository extends _i1.Mock
       );
 
   @override
-  _i6.Future<void> sendCsatFeedBack(_i10.SendCsatSurveyRequest? request) =>
+  _i6.Future<void> sendCsatFeedBack(
+    String? conversationUuid,
+    _i10.SendCsatSurveyRequest? request,
+  ) =>
       (super.noSuchMethod(
         Invocation.method(
           #sendCsatFeedBack,
-          [request],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
-
-  @override
-  _i6.Future<void> getCsatFeedback() => (super.noSuchMethod(
-        Invocation.method(
-          #getCsatFeedback,
-          [],
+          [
+            conversationUuid,
+            request,
+          ],
         ),
         returnValue: _i6.Future<void>.value(),
         returnValueForMissingStub: _i6.Future<void>.value(),

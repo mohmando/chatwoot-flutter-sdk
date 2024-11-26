@@ -1,19 +1,38 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:chatwoot_sdk/chatwoot_callbacks.dart';
 import 'package:chatwoot_sdk/chatwoot_client.dart';
 import 'package:chatwoot_sdk/data/local/entity/chatwoot_message.dart';
 import 'package:chatwoot_sdk/data/local/entity/chatwoot_user.dart';
 import 'package:chatwoot_sdk/data/remote/chatwoot_client_exception.dart';
+import 'package:chatwoot_sdk/ui/chat_input.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_chat_theme.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_l10n.dart';
+import 'package:chatwoot_sdk/ui/media_widgets.dart';
+import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:intl/intl.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:mime/mime.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+
+
+class FileAttachment{
+  final Uint8List bytes;
+  final String name;
+  final String path;
+
+  FileAttachment({required this.bytes, required this.name, required this.path});
+}
 
 ///Chatwoot chat widget
 /// {@category FlutterClientSdk}
-@deprecated
 class ChatwootChat extends StatefulWidget {
   /// Specifies a custom app bar for chatwoot page widget
   final PreferredSizeWidget? appBar;
@@ -46,10 +65,10 @@ class ChatwootChat extends StatefulWidget {
   final void Function(BuildContext context, types.Message)? onMessageLongPress;
 
   /// See [Message.onMessageTap]
-  final void Function(types.Message)? onMessageTap;
+  final void Function(BuildContext context, types.Message)? onMessageTap;
 
   /// See [Input.onSendPressed]
-  final void Function(types.PartialText)? onSendPressed;
+  final void Function(String)? onSendPressed;
 
   /// Show avatars for received messages.
   final bool showUserAvatars;
@@ -107,6 +126,10 @@ class ChatwootChat extends StatefulWidget {
   ///See [ChatwootCallbacks.onMessagesRetrieved]
   final void Function(List<ChatwootMessage>)? onMessagesRetrieved;
 
+  final Future<FileAttachment?> Function()? onAttachmentPressed;
+
+  final Future<void> Function(String)? openFile;
+
   ///See [ChatwootCallbacks.onError]
   final void Function(ChatwootClientException)? onError;
 
@@ -144,6 +167,8 @@ class ChatwootChat extends StatefulWidget {
       this.onConversationStoppedTyping,
       this.onConversationIsOnline,
       this.onConversationIsOffline,
+      this.onAttachmentPressed,
+      this.openFile,
       this.onError,
       this.isPresentedInDialog = false})
       : super(key: key);
@@ -152,7 +177,6 @@ class ChatwootChat extends StatefulWidget {
   _ChatwootChatState createState() => _ChatwootChatState();
 }
 
-@deprecated
 class _ChatwootChatState extends State<ChatwootChat> {
   ///
   List<types.Message> _messages = [];
@@ -160,15 +184,17 @@ class _ChatwootChatState extends State<ChatwootChat> {
   late String status;
 
   final idGen = Uuid();
-  late final _user;
+  late final types.User _user;
   ChatwootClient? chatwootClient;
 
-  late final chatwootCallbacks;
+  late final ChatwootCallbacks chatwootCallbacks;
+
+  final botImageUrl = "https://d2cbg94ubxgsnp.cloudfront.net/Pictures/480x270//9/9/3/512993_shutterstock_715962319converted_920340.png";
 
   @override
   void initState() {
     super.initState();
-
+    MediaKit.ensureInitialized();
     if (widget.user == null) {
       _user = types.User(id: idGen.v4());
     } else {
@@ -228,8 +254,8 @@ class _ChatwootChatState extends State<ChatwootChat> {
         widget.onMessageReceived?.call(chatwootMessage);
       },
       onMessageDelivered: (chatwootMessage, echoId) {
-        _handleMessageSent(
-            _chatwootMessageToTextMessage(chatwootMessage, echoId: echoId));
+        // _handleMessageSent(
+        //     _chatwootMessageToTextMessage(chatwootMessage, echoId: echoId));
         widget.onMessageDelivered?.call(chatwootMessage);
       },
       onMessageUpdated: (chatwootMessage) {
@@ -238,25 +264,41 @@ class _ChatwootChatState extends State<ChatwootChat> {
         widget.onMessageUpdated?.call(chatwootMessage);
       },
       onMessageSent: (chatwootMessage, echoId) {
-        final textMessage = types.TextMessage(
-            id: echoId,
-            author: _user,
-            text: chatwootMessage.content ?? "",
-            status: types.Status.delivered);
+        types.Message textMessage = _chatwootMessageToTextMessage(chatwootMessage, echoId: echoId, messageStatus: types.Status.sent);
         _handleMessageSent(textMessage);
         widget.onMessageSent?.call(chatwootMessage);
       },
       onConversationResolved: () {
+
         final resolvedMessage = types.TextMessage(
-            id: idGen.v4(),
+            id: "resolved",
             text: widget.l10n.conversationResolvedMessage,
             author: types.User(
                 id: idGen.v4(),
-                firstName: "Bot",
                 imageUrl:
-                    "https://d2cbg94ubxgsnp.cloudfront.net/Pictures/480x270//9/9/3/512993_shutterstock_715962319converted_920340.png"),
+                botImageUrl),
             status: types.Status.delivered);
         _addMessage(resolvedMessage);
+        final csatMessage = types.CustomMessage(
+            id: "csat",
+            author: types.User(
+                id: idGen.v4(),
+                imageUrl: botImageUrl),
+            status: types.Status.delivered);
+        _addMessage(csatMessage);
+      },
+      onCsatSurveyResponseRecorded: (feedback){
+
+        final resolvedMessage = types.CustomMessage(
+            id: "csat",
+            author: types.User(
+                id: idGen.v4(),
+                imageUrl: botImageUrl),
+            metadata: {
+              "feedback": feedback
+            },
+            status: types.Status.delivered);
+        _handleMessageUpdated(resolvedMessage);
       },
       onError: (error) {
         if (error.type == ChatwootClientExceptionType.SEND_MESSAGE_FAILED) {
@@ -285,8 +327,8 @@ class _ChatwootChatState extends State<ChatwootChat> {
     });
   }
 
-  types.TextMessage _chatwootMessageToTextMessage(ChatwootMessage message,
-      {String? echoId}) {
+  types.Message _chatwootMessageToTextMessage(ChatwootMessage message,
+      {String? echoId, types.Status? messageStatus}) {
     String? avatarUrl = message.sender?.avatarUrl ?? message.sender?.thumbnail;
 
     //Sets avatar url to null if its a gravatar not found url
@@ -294,6 +336,83 @@ class _ChatwootChatState extends State<ChatwootChat> {
     if (avatarUrl?.contains("?d=404") ?? false) {
       avatarUrl = null;
     }
+
+    if(message.attachments?.first.dataUrl?.isNotEmpty ?? false){
+      Uri uri = Uri.parse(message.attachments!.first.dataUrl!);
+
+      // Get the last path segment from the URL (after the last '/')
+      String fileName = uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.last
+          : '';
+      if(message.attachments!.first.fileType == "image"){
+        return types.ImageMessage(
+            id: echoId ?? message.id.toString(),
+            author: message.isMine
+                ? _user
+                : types.User(
+              id: message.sender?.id.toString() ?? idGen.v4(),
+              firstName: message.sender?.name,
+              imageUrl: avatarUrl,
+            ),
+            name: fileName,
+            size: message.attachments!.first.fileSize ?? 0,
+            uri: message.attachments!.first.dataUrl!,
+            status: messageStatus ?? types.Status.seen,
+            createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
+      }else if(message.attachments!.first.fileType == "video"){
+        return types.VideoMessage(
+            id: echoId ?? message.id.toString(),
+            author: message.isMine
+                ? _user
+                : types.User(
+              id: message.sender?.id.toString() ?? idGen.v4(),
+              firstName: message.sender?.name,
+              imageUrl: avatarUrl,
+            ),
+            metadata: {
+              "thumbnail": message.attachments!.first.thumbUrl
+            },
+            height: 500,
+            width: 500,
+            name: fileName,
+            size: message.attachments!.first.fileSize ?? 0,
+            uri: message.attachments!.first.dataUrl!,
+            status: messageStatus ?? types.Status.seen,
+            createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
+      }else if(message.attachments!.first.fileType == "audio"){
+        return types.AudioMessage(
+            id: echoId ?? message.id.toString(),
+            author: message.isMine
+                ? _user
+                : types.User(
+              id: message.sender?.id.toString() ?? idGen.v4(),
+              firstName: message.sender?.name,
+              imageUrl: avatarUrl,
+            ),
+            duration:Duration.zero,
+            name: fileName,
+            size: message.attachments!.first.fileSize ?? 0,
+            uri: message.attachments!.first.dataUrl!,
+            status: messageStatus ?? types.Status.seen,
+            createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
+      }else{
+        return types.FileMessage(
+            id: echoId ?? message.id.toString(),
+            author: message.isMine
+                ? _user
+                : types.User(
+              id: message.sender?.id.toString() ?? idGen.v4(),
+              firstName: message.sender?.name,
+              imageUrl: avatarUrl,
+            ),
+            name: fileName,
+            size: message.attachments!.first.fileSize ?? 0,
+            uri: message.attachments!.first.dataUrl!,
+            status: messageStatus ?? types.Status.seen,
+            createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
+      }
+    }
+
     return types.TextMessage(
         id: echoId ?? message.id.toString(),
         author: message.isMine
@@ -329,13 +448,6 @@ class _ChatwootChatState extends State<ChatwootChat> {
     });
   }
 
-  void _handleMessageTap(BuildContext context, types.Message message) async {
-    if (message.status == types.Status.error && message is types.TextMessage) {
-      _handleResendMessage(message);
-    }
-    widget.onMessageTap?.call(message);
-  }
-
   void _handlePreviewDataFetched(
     types.TextMessage message,
     types.PreviewData previewData,
@@ -352,14 +464,47 @@ class _ChatwootChatState extends State<ChatwootChat> {
     });
   }
 
+
+  void _handleMessageTap(BuildContext _, types.Message message) async {
+
+    if (message.status == types.Status.error && message is types.TextMessage) {
+      _handleResendMessage(message);
+      return;
+    }
+    if ((message is types.FileMessage) && widget.openFile != null) {
+      var localPath = message.uri;
+
+      if (localPath.startsWith('http')) {
+
+
+          final client = http.Client();
+          final request = await client.get(Uri.parse(localPath));
+          final bytes = request.bodyBytes;
+          final documentsDir = (await getApplicationDocumentsDirectory()).path;
+          localPath = '$documentsDir/${message.name}';
+
+          if (!File(localPath).existsSync()) {
+            final file = File(localPath);
+            await file.writeAsBytes(bytes);
+          }
+
+      }
+      widget.onMessageTap?.call(context, message);
+
+      await widget.openFile?.call(localPath);
+    }
+
+    if(message is types.ImageMessage){
+      final imageProvider = CachedNetworkImageProvider(message.uri);
+      showImageViewer(context, imageProvider);
+    }
+  }
+
+
   void _handleMessageSent(
     types.Message message,
   ) {
     final index = _messages.indexWhere((element) => element.id == message.id);
-
-    if (_messages[index].status == types.Status.seen) {
-      return;
-    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
@@ -380,12 +525,12 @@ class _ChatwootChatState extends State<ChatwootChat> {
     });
   }
 
-  void _handleSendPressed(types.PartialText message) {
+  void _handleSendPressed(String message) {
     final textMessage = types.TextMessage(
         author: _user,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: const Uuid().v4(),
-        text: message.text,
+        text: message,
         status: types.Status.sending);
 
     _addMessage(textMessage);
@@ -394,6 +539,57 @@ class _ChatwootChatState extends State<ChatwootChat> {
         .sendMessage(content: textMessage.text, echoId: textMessage.id);
     widget.onSendPressed?.call(message);
   }
+
+  void _handleAttachmentPressed() async{
+    final attachment = await widget.onAttachmentPressed?.call();
+    if(attachment != null){
+      types.Message message;
+      if(lookupMimeType(attachment.name)?.startsWith("image") ?? false){
+        message = types.ImageMessage(
+            author: _user,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            id: const Uuid().v4(),
+            name: attachment.name,
+            uri: attachment.path,
+            size: attachment.bytes.length,
+            status: types.Status.sending);
+      }else if(lookupMimeType(attachment.name)?.startsWith("video") ?? false){
+        message = types.VideoMessage(
+            author: _user,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            id: const Uuid().v4(),
+            name: attachment.name,
+            uri: attachment.path,
+            size: attachment.bytes.length,
+            status: types.Status.sending);
+      }else if(lookupMimeType(attachment.name)?.startsWith("audio") ?? false){
+        message = types.AudioMessage(
+            author: _user,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            id: const Uuid().v4(),
+            name: attachment.name,
+            uri: attachment.path,
+            size: attachment.bytes.length,
+            duration: Duration.zero,
+            status: types.Status.sending);
+      }else{
+        message = types.FileMessage(
+            author: _user,
+            createdAt: DateTime.now().millisecondsSinceEpoch,
+            id: const Uuid().v4(),
+            name: attachment.name,
+            uri: attachment.path,
+            size: attachment.bytes.length,
+            status: types.Status.sending);
+      }
+
+      _addMessage(message);
+
+      chatwootClient!
+          .sendMessage(content: attachment.name, echoId: message.id, attachment: [attachment]);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -410,17 +606,67 @@ class _ChatwootChatState extends State<ChatwootChat> {
               child: Chat(
                 messages: _messages,
                 onMessageTap: _handleMessageTap,
-                onPreviewDataFetched: _handlePreviewDataFetched,
-                onSendPressed: _handleSendPressed,
+                onPreviewDataFetched: (_,__){},
+                onSendPressed: (_){},
                 user: _user,
                 onEndReached: widget.onEndReached,
                 onEndReachedThreshold: widget.onEndReachedThreshold,
                 onMessageLongPress: widget.onMessageLongPress,
+                onAttachmentPressed: (){},
                 showUserAvatars: widget.showUserAvatars,
                 showUserNames: widget.showUserNames,
                 timeFormat: widget.timeFormat ?? DateFormat.Hm(),
                 dateFormat: widget.timeFormat ?? DateFormat("EEEE MMMM d"),
                 theme: widget.theme ?? ChatwootChatTheme(),
+                disableImageGallery: true,
+                customBottomWidget: ChatInput(
+                    theme: widget.theme ?? ChatwootChatTheme(),
+                    l10n: widget.l10n,
+                    onMessageSent: _handleSendPressed,
+                    onAttachmentPressed: _handleAttachmentPressed),
+                textMessageBuilder: (message, {messageWidth=0, showName=true}){
+                  return TextChatMessage(
+                      theme: widget.theme ?? ChatwootChatTheme(),
+                      message: message,
+                      isMine: message.author.id == _user.id,
+                      maxWidth: messageWidth,
+                      onPreviewFetched: _handlePreviewDataFetched
+                  );
+                },
+                videoMessageBuilder: (message, {messageWidth=0}){
+                  return VideoChatMessage(
+                      theme: widget.theme ?? ChatwootChatTheme(),
+                      message: message,
+                      isMine: message.author.id == _user.id,
+                      maxWidth: messageWidth
+                  );
+                },
+                audioMessageBuilder: (message, {messageWidth=0}){
+                  return AudioChatMessage(
+                      theme: widget.theme ?? ChatwootChatTheme(),
+                      message: message,
+                      isMine: message.author.id == _user.id,
+                  );
+                },
+                customMessageBuilder:  (message, {messageWidth=0}){
+                  if(message.metadata?["feedback"] != null){
+                    return RecordedCsatChatMessage(
+                      theme: widget.theme ?? ChatwootChatTheme(),
+                      l10n: widget.l10n,
+                      message: message,
+                      maxWidth: messageWidth,
+                    );
+                  }
+                  return CSATChatMessage(
+                      theme: widget.theme ?? ChatwootChatTheme(),
+                      l10n: widget.l10n,
+                      message: message,
+                      maxWidth: messageWidth,
+                      sendCsatResults: (rating, feedback){
+                        chatwootClient?.sendCsatSurveyResults(rating, feedback);
+                      },
+                  );
+                },
                 l10n: widget.l10n,
               ),
             ),
@@ -457,3 +703,5 @@ class _ChatwootChatState extends State<ChatwootChat> {
     chatwootClient?.dispose();
   }
 }
+
+

@@ -9,7 +9,6 @@ import 'chatwoot_chat_page.dart';
 
 ///Chatwoot chat modal widget
 /// {@category FlutterClientSdk}
-@deprecated
 class ChatwootChatDialog extends StatefulWidget {
   static show(
     BuildContext context, {
@@ -24,6 +23,8 @@ class ChatwootChatDialog extends StatefulWidget {
     ChatwootL10n? l10n,
     DateFormat? timeFormat,
     DateFormat? dateFormat,
+    Future<FileAttachment?> Function()? onAttachmentPressed,
+    Future<void> Function(String)? openFile
   }) {
     showDialog(
         context: context,
@@ -40,6 +41,8 @@ class ChatwootChatDialog extends StatefulWidget {
             l10n: l10n,
             timeFormat: timeFormat,
             dateFormat: dateFormat,
+            onAttachmentPressed: onAttachmentPressed,
+            openFile: openFile,
           );
         });
   }
@@ -83,6 +86,10 @@ class ChatwootChatDialog extends StatefulWidget {
   /// See [Chat.dateFormat]
   final DateFormat? dateFormat;
 
+  final Future<FileAttachment?> Function()? onAttachmentPressed;
+
+  final Future<void> Function(String)? openFile;
+
   const ChatwootChatDialog({
     Key? key,
     required this.baseUrl,
@@ -96,6 +103,8 @@ class ChatwootChatDialog extends StatefulWidget {
     this.l10n,
     this.timeFormat,
     this.dateFormat,
+    this.onAttachmentPressed,
+    this.openFile
   }) : super(key: key);
 
   @override

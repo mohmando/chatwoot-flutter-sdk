@@ -33,7 +33,6 @@ dependencies:
   easy_image_viewer: ^1.5.1
   cached_network_image: ^3.4.0
   flutter_markdown: ^0.7.4+2
-  flutter_link_previewer: ^3.2.2
   webview_flutter: ^4.10.0
 
 dev_dependencies:

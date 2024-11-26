@@ -111,7 +111,6 @@ class ChatwootChatDialog extends StatefulWidget {
   _ChatwootChatDialogState createState() => _ChatwootChatDialogState();
 }
 
-@deprecated
 class _ChatwootChatDialogState extends State<ChatwootChatDialog> {
   late String status;
   late ChatwootL10n localizedStrings;

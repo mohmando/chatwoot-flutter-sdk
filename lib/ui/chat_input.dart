@@ -18,10 +18,12 @@ class _ChatInputState extends State<ChatInput> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
   String text = '';
+  late TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
+    this._controller = TextEditingController();
     _focusNode.addListener(() {
       setState(() {
         _isFocused = _focusNode.hasFocus;
@@ -63,6 +65,7 @@ class _ChatInputState extends State<ChatInput> {
             // Text Field
             Expanded(
               child: TextField(
+                controller: _controller,
                 focusNode: _focusNode,
                 decoration: InputDecoration(
                   hintText: widget.l10n.inputPlaceholder,
@@ -106,6 +109,8 @@ class _ChatInputState extends State<ChatInput> {
   _submit(){
     if(text.isNotEmpty){
       widget.onMessageSent(text);
+      text = "";
+      _controller.text = "";
     }
   }
 }

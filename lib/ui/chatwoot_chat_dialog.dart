@@ -228,6 +228,8 @@ class _ChatwootChatDialogState extends State<ChatwootChatDialog> {
                     status = localizedStrings.typingText;
                   });
                 },
+                onAttachmentPressed: widget.onAttachmentPressed,
+                openFile: widget.openFile,
               ),
             ),
           ],

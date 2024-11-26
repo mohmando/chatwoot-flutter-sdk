@@ -13,6 +13,8 @@ import 'package:chatwoot_sdk/data/remote/requests/chatwoot_action_data.dart'
     as _i9;
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_new_message_request.dart'
     as _i8;
+import 'package:chatwoot_sdk/data/remote/requests/send_csat_survey_request.dart'
+    as _i10;
 import 'package:chatwoot_sdk/data/remote/service/chatwoot_client_service.dart'
     as _i2;
 import 'package:mockito/mockito.dart' as _i1;
@@ -164,6 +166,27 @@ class MockChatwootRepository extends _i1.Mock
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i6.Future<void> sendCsatFeedBack(_i10.SendCsatSurveyRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #sendCsatFeedBack,
+          [request],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> getCsatFeedback() => (super.noSuchMethod(
+        Invocation.method(
+          #getCsatFeedback,
+          [],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
 
   @override
   _i6.Future<void> clear() => (super.noSuchMethod(

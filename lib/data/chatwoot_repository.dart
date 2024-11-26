@@ -4,11 +4,13 @@ import 'dart:core';
 
 import 'package:chatwoot_sdk/chatwoot_callbacks.dart';
 import 'package:chatwoot_sdk/chatwoot_client.dart';
+import 'package:chatwoot_sdk/data/local/entity/chatwoot_message.dart';
 import 'package:chatwoot_sdk/data/local/entity/chatwoot_user.dart';
 import 'package:chatwoot_sdk/data/local/local_storage.dart';
 import 'package:chatwoot_sdk/data/remote/chatwoot_client_exception.dart';
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_action_data.dart';
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_new_message_request.dart';
+import 'package:chatwoot_sdk/data/remote/requests/send_csat_survey_request.dart';
 import 'package:chatwoot_sdk/data/remote/responses/chatwoot_event.dart';
 import 'package:chatwoot_sdk/data/remote/service/chatwoot_client_service.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +42,10 @@ abstract class ChatwootRepository {
   Future<void> sendMessage(ChatwootNewMessageRequest request);
 
   void sendAction(ChatwootActionType action);
+
+  Future<void> sendCsatFeedBack(SendCsatSurveyRequest request);
+
+  Future<void> getCsatFeedback();
 
   Future<void> clear();
 
@@ -126,11 +132,35 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
     }
   }
 
+  @override
+  Future<void> getCsatFeedback() async{
+    try {
+      final feedback = await clientService.getCsatFeedback();
+      if(feedback!=null){
+        callbacks.onCsatSurveyResponseRecorded?.call(feedback);
+      }
+    } on ChatwootClientException catch (e) {
+      callbacks.onError?.call(
+          ChatwootClientException(e.cause, e.type));
+    }
+  }
+
+  @override
+  Future<void> sendCsatFeedBack(SendCsatSurveyRequest request) async{
+    try {
+      final feedback = await clientService.sendCsatFeedBack(request);
+      callbacks.onCsatSurveyResponseRecorded?.call(feedback);
+    } on ChatwootClientException catch (e) {
+      callbacks.onError?.call(
+          ChatwootClientException(e.cause, e.type));
+    }
+  }
+
   /// Connects to chatwoot websocket and starts listening for updates
   ///
   /// Received events/messages are pushed through [ChatwootClient.callbacks]
   @override
-  void listenForEvents() {
+  void listenForEvents(){
     final token = localStorage.contactDao.getContact()?.pubsubToken;
     if (token == null) {
       return;
@@ -138,7 +168,7 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
     clientService.startWebSocketConnection(
         localStorage.contactDao.getContact()!.pubsubToken ?? "");
 
-    final newSubscription = clientService.connection!.stream.listen((event) {
+    final newSubscription = clientService.connection!.stream.listen((event) async{
       ChatwootEvent chatwootEvent = ChatwootEvent.fromJson(jsonDecode(event));
       if (chatwootEvent.type == ChatwootEventType.welcome) {
         callbacks.onWelcome?.call();
@@ -153,7 +183,9 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
       } else if (chatwootEvent.message?.event ==
           ChatwootEventMessageType.message_created) {
         print("here comes message: $event");
-        final message = chatwootEvent.message!.data!.getMessage();
+
+        final ChatwootMessage message = chatwootEvent.message!.data!.getMessage();
+
         localStorage.messagesDao.saveMessage(message);
         if (message.isMine) {
           callbacks.onMessageDelivered
@@ -165,7 +197,8 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
           ChatwootEventMessageType.message_updated) {
         print("here comes the updated message: $event");
 
-        final message = chatwootEvent.message!.data!.getMessage();
+
+        final ChatwootMessage message = chatwootEvent.message!.data!.getMessage();
         localStorage.messagesDao.saveMessage(message);
 
         callbacks.onMessageUpdated?.call(message);

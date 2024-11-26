@@ -4,6 +4,7 @@ import 'package:chatwoot_sdk/data/local/entity/chatwoot_contact.dart';
 import 'package:chatwoot_sdk/data/local/entity/chatwoot_conversation.dart';
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_action_data.dart';
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_new_message_request.dart';
+import 'package:chatwoot_sdk/data/remote/requests/send_csat_survey_request.dart';
 import 'package:chatwoot_sdk/di/modules.dart';
 import 'package:chatwoot_sdk/chatwoot_parameters.dart';
 import 'package:chatwoot_sdk/repository_parameters.dart';
@@ -49,14 +50,15 @@ class ChatwootClient {
   void loadMessages() async {
     _repository.getPersistedMessages();
     await _repository.getMessages();
+    await _repository.getCsatFeedback();
   }
 
   /// Sends chatwoot message. The echoId is your temporary message id. When message sends successfully
   /// [ChatwootMessage] will be returned with the [echoId] on [ChatwootCallbacks.onMessageSent]. If
   /// message fails to send [ChatwootCallbacks.onError] will be triggered [echoId] as data.
   Future<void> sendMessage(
-      {required String content, required String echoId}) async {
-    final request = ChatwootNewMessageRequest(content: content, echoId: echoId);
+      {required String content, required String echoId, List<FileAttachment>? attachment}) async {
+    final request = ChatwootNewMessageRequest(content: content, echoId: echoId, attachments: attachment ?? []);
     await _repository.sendMessage(request);
   }
 
@@ -65,6 +67,11 @@ class ChatwootClient {
   /// Example: User started typing
   Future<void> sendAction(ChatwootActionType action) async {
     _repository.sendAction(action);
+  }
+
+  ///Send chatwoot csat survey results.
+  Future<void> sendCsatSurveyResults(int rating, String feedback) async {
+    _repository.sendCsatFeedBack(SendCsatSurveyRequest(rating: rating, feedbackMessage: feedback));
   }
 
   ///Disposes chatwoot client and cancels all stream subscriptions

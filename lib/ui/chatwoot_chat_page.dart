@@ -251,8 +251,11 @@ class _ChatwootChatState extends State<ChatwootChat> {
                 return _chatwootMessageToTextMessage(message);
           })
               .toList();
-          final mergedMessages =
-              <types.Message>[..._messages, ...chatMessages].toSet().toList();
+          final mergedMessages = mergeLists(
+              list1: chatMessages, list2: _messages,
+              getItemKey: (item)=>item.id,
+              merger: (item1, item2)=>item1
+          );
           final now = DateTime.now().millisecondsSinceEpoch;
           mergedMessages.sort((a, b) {
             return (b.createdAt ?? now).compareTo(a.createdAt ?? now);
@@ -340,8 +343,40 @@ class _ChatwootChatState extends State<ChatwootChat> {
     });
   }
 
-  types.Message _chatwootMessageToTextMessage(ChatwootMessage message,
-      {String? echoId, types.Status? messageStatus}) {
+  List<T> mergeLists<T, K>({
+    required List<T> list1,
+    required List<T> list2,
+    required K Function(T item) getItemKey,
+    required T Function(T item1, T item2) merger,
+  }) {
+    final Map<K, T> map = {};
+
+    for (final item in list2) {
+      final key = getItemKey(item);
+      map[key] = item;
+    }
+
+    final List<T> result = [];
+
+    // Merge items from list1 with list2 or add them directly if no match
+    for (final item in list1) {
+      final key = getItemKey(item);
+      if (map.containsKey(key)) {
+        result.add(merger(item, map[key]!));
+        map.remove(key); // Remove matched item to prevent duplicates
+      } else {
+        result.add(item);
+      }
+    }
+
+    // Add remaining items from list2 that were not matched
+    result.addAll(map.values);
+
+    return result;
+  }
+
+
+  types.Message _chatwootMessageToTextMessage(ChatwootMessage message, {String? echoId, types.Status? messageStatus}) {
     String? avatarUrl = message.sender?.avatarUrl ?? message.sender?.thumbnail;
 
     //Sets avatar url to null if its a gravatar not found url

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 class LinkMetadata {
@@ -123,40 +124,45 @@ class _LinkPreviewState extends State<LinkPreview> {
               ),
             ],
           ),
-          child: Column(
-            children: [
-              if (metadata.imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: CachedNetworkImage(
-                    imageUrl: metadata.imageUrl!,
-                    height: 150,
-                    width: 250,
-                    fit: BoxFit.cover,
+          child: GestureDetector(
+            onTap: (){
+              launchUrl(Uri.parse(widget.url));
+            },
+            child: Column(
+              children: [
+                if (metadata.imageUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.0),
+                    child: CachedNetworkImage(
+                      imageUrl: metadata.imageUrl!,
+                      height: 150,
+                      width: 250,
+                      fit: BoxFit.cover,
+                    ),
                   ),
+                if (metadata.imageUrl != null) SizedBox(height: 16.0),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      metadata.title ?? '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      metadata.description ?? '',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              if (metadata.imageUrl != null) SizedBox(height: 16.0),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    metadata.title ?? '',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8.0),
-                  Text(
-                    metadata.description ?? '',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

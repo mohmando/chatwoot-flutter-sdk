@@ -22,8 +22,9 @@ abstract class ChatwootClientService {
   final String _baseUrl;
   WebSocketChannel? connection;
   final Dio _dio;
+  final Dio _udio;
 
-  ChatwootClientService(this._baseUrl, this._dio);
+  ChatwootClientService(this._baseUrl, this._dio, this._udio);
 
   Future<ChatwootContact> updateContact(update);
 
@@ -48,8 +49,8 @@ abstract class ChatwootClientService {
 }
 
 class ChatwootClientServiceImpl extends ChatwootClientService {
-  ChatwootClientServiceImpl(String baseUrl, {required Dio dio})
-      : super(baseUrl, dio);
+  ChatwootClientServiceImpl(String baseUrl, {required Dio dio, required Dio uDio})
+      : super(baseUrl, dio, uDio);
 
   ///Sends message to chatwoot inbox
   @override
@@ -244,7 +245,7 @@ class ChatwootClientServiceImpl extends ChatwootClientService {
   @override
   Future<CsatSurveyFeedbackResponse> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request) async{
     try {
-      final response = await _dio.post(
+      final response = await _udio.put(
           "/public/api/v1/csat_survey/$conversationUuid",
           data: {
             "message":{

@@ -4,55 +4,65 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart';
 import 'package:flutter/material.dart';
 
+
 class LinkMetadata {
+
+
+  static final _previews = <String,LinkMetadata>{
+
+  };
   final String? title;
   final String? description;
   final String? imageUrl;
 
   LinkMetadata({this.title, this.description, this.imageUrl});
-}
 
-final _previews = <String,LinkMetadata>{
 
-};
 
-Future<LinkMetadata?> fetchLinkMetadata(String url) async {
-  final cachedMetadata = _previews[url];
-  if(cachedMetadata!=null){
-    return cachedMetadata;
-  }
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final document = parse(utf8.decode(response.bodyBytes));
-
-      // Extract metadata from meta tags
-      final title = document
-          .querySelector('meta[property="og:title"]')
-          ?.attributes['content'] ??
-          document.querySelector('title')?.text;
-
-      final description = document
-          .querySelector('meta[property="og:description"]')
-          ?.attributes['content'] ??
-          document.querySelector('meta[name="description"]')?.attributes['content'];
-
-      final imageUrl = document.head?.querySelector('meta[name="og:image"]')
-          ?.attributes['content'] ?? document.head?.querySelector('meta[property="og:image"]')
-          ?.attributes['content'];
-      final metadata = LinkMetadata(
-        title: title,
-        description: description,
-        imageUrl: imageUrl,
-      );
-      _previews[url] = metadata;
-      return metadata;
+  static Future<LinkMetadata?> fetchLinkMetadata(String url) async {
+    final cachedMetadata = _previews[url];
+    if(cachedMetadata!=null){
+      return cachedMetadata;
     }
-  } catch (e) {
-    print("Error fetching metadata: $e");
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final document = parse(utf8.decode(response.bodyBytes));
+
+        // Extract metadata from meta tags
+        final title = document
+            .querySelector('meta[property="og:title"]')
+            ?.attributes['content'] ??
+            document.querySelector('title')?.text;
+
+        final description = document
+            .querySelector('meta[property="og:description"]')
+            ?.attributes['content'] ??
+            document.querySelector('meta[name="description"]')?.attributes['content'];
+
+        final imageUrl = document.head?.querySelector('meta[name="og:image"]')
+            ?.attributes['content'] ?? document.head?.querySelector('meta[property="og:image"]')
+            ?.attributes['content'];
+        final metadata = LinkMetadata(
+          title: title,
+          description: description,
+          imageUrl: imageUrl,
+        );
+        _previews[url] = metadata;
+        return metadata;
+      }
+    } catch (e) {
+      print("Error fetching metadata: $e");
+    }
+    return null;
   }
-  return null;
+
+  static dispose(){
+    _previews.clear();
+  }
+
 }
+
 
 
 class LinkPreview extends StatefulWidget {
@@ -70,7 +80,7 @@ class _LinkPreviewState extends State<LinkPreview> {
   @override
   void initState() {
     super.initState();
-    _metadataFuture = fetchLinkMetadata(widget.url);
+    _metadataFuture = LinkMetadata.fetchLinkMetadata(widget.url);
   }
 
   @override

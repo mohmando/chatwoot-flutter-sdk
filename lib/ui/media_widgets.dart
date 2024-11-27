@@ -3,6 +3,7 @@ import 'package:chatwoot_sdk/data/remote/responses/csat_survey_response.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_chat_theme.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_l10n.dart';
 import 'package:chatwoot_sdk/ui/link_preview.dart';
+import 'package:chatwoot_sdk/ui/video_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:media_kit/media_kit.dart';
@@ -137,9 +138,7 @@ class VideoChatMessage extends StatefulWidget {
 }
 
 class _VideoChatMessageState extends State<VideoChatMessage> {
-  late Player player;
-  late VideoController _controller;
-  double height = 500;
+  final double height = 300;
   void playVideo() {
     Navigator.push(
       context,
@@ -147,42 +146,26 @@ class _VideoChatMessageState extends State<VideoChatMessage> {
     );
   }
 
+  VideoMessagePreview? get previewData =>widget.message.metadata?["preview"];
+
   @override
   void initState() {
     super.initState();
-    player = Player();
-    player.open(Media(widget.message.uri),play: false);
-    _controller = VideoController(player);
-    _controller.rect.addListener((){
-      setState(() {
-        final videoHeight = _controller.rect.value?.height ?? 0;
-        final videoWidth = _controller.rect.value?.width ?? 0;
-        if(videoHeight > 0 && videoWidth > 0){
-          height = (videoHeight * widget.maxWidth.toDouble())/videoWidth;
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    player.dispose();
-    _controller.rect.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      width: widget.maxWidth.toDouble(),
-      child: Stack(
-        children: [
-          Video(controller: _controller),
-          Positioned.fill(
-            child: Center(
-              child: GestureDetector(
-                onTap: playVideo,
+    return GestureDetector(
+      onTap: playVideo,
+      child: Container(
+        height: height,
+        width: widget.maxWidth.toDouble(),
+        child: Stack(
+          children: [
+            if(previewData != null)
+              RawImage(image: previewData?.firstFrame?.image, fit: BoxFit.cover, width: widget.maxWidth.toDouble(), height: height,),
+            Positioned.fill(
+              child: Center(
                 child: Container(
                   height: 60.0,
                   width: 60.0,
@@ -198,8 +181,8 @@ class _VideoChatMessageState extends State<VideoChatMessage> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

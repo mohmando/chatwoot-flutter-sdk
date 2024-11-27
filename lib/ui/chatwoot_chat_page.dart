@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -10,13 +11,16 @@ import 'package:chatwoot_sdk/data/remote/chatwoot_client_exception.dart';
 import 'package:chatwoot_sdk/ui/chat_input.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_chat_theme.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_l10n.dart';
+import 'package:chatwoot_sdk/ui/link_preview.dart';
 import 'package:chatwoot_sdk/ui/media_widgets.dart';
+import 'package:chatwoot_sdk/ui/video_preview.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -30,6 +34,7 @@ class FileAttachment{
 
   FileAttachment({required this.bytes, required this.name, required this.path});
 }
+
 
 ///Chatwoot chat widget
 /// {@category FlutterClientSdk}
@@ -188,6 +193,8 @@ class _ChatwootChatState extends State<ChatwootChat> {
   ChatwootClient? chatwootClient;
 
   late final ChatwootCallbacks chatwootCallbacks;
+  late VideoController controller;
+  late VideoPreviewLoader videoPreviewLoader;
 
   final botImageUrl = "https://d2cbg94ubxgsnp.cloudfront.net/Pictures/480x270//9/9/3/512993_shutterstock_715962319converted_920340.png";
 
@@ -195,6 +202,9 @@ class _ChatwootChatState extends State<ChatwootChat> {
   void initState() {
     super.initState();
     MediaKit.ensureInitialized();
+    controller = VideoController(Player());
+    videoPreviewLoader = VideoPreviewLoader(controller: controller);
+    videoPreviewLoader.listen(_handleVideoPreviewLoaded);
     if (widget.user == null) {
       _user = types.User(id: idGen.v4());
     } else {
@@ -237,7 +247,9 @@ class _ChatwootChatState extends State<ChatwootChat> {
         }
         setState(() {
           final chatMessages = messages
-              .map((message) => _chatwootMessageToTextMessage(message))
+              .map((message){
+                return _chatwootMessageToTextMessage(message);
+          })
               .toList();
           final mergedMessages =
               <types.Message>[..._messages, ...chatMessages].toSet().toList();
@@ -254,8 +266,6 @@ class _ChatwootChatState extends State<ChatwootChat> {
         widget.onMessageReceived?.call(chatwootMessage);
       },
       onMessageDelivered: (chatwootMessage, echoId) {
-        // _handleMessageSent(
-        //     _chatwootMessageToTextMessage(chatwootMessage, echoId: echoId));
         widget.onMessageDelivered?.call(chatwootMessage);
       },
       onMessageUpdated: (chatwootMessage) {
@@ -363,7 +373,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
             status: messageStatus ?? types.Status.seen,
             createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
       }else if(message.attachments!.first.fileType == "video"){
-        return types.VideoMessage(
+        final videoMessage = types.VideoMessage(
             id: echoId ?? message.id.toString(),
             author: message.isMine
                 ? _user
@@ -372,9 +382,6 @@ class _ChatwootChatState extends State<ChatwootChat> {
               firstName: message.sender?.name,
               imageUrl: avatarUrl,
             ),
-            metadata: {
-              "thumbnail": message.attachments!.first.thumbUrl
-            },
             height: 500,
             width: 500,
             name: fileName,
@@ -382,6 +389,9 @@ class _ChatwootChatState extends State<ChatwootChat> {
             uri: message.attachments!.first.dataUrl!,
             status: messageStatus ?? types.Status.seen,
             createdAt: DateTime.parse(message.createdAt).millisecondsSinceEpoch);
+
+        videoPreviewLoader.getPreview(jobId: videoMessage.id, uri: videoMessage.uri);
+        return videoMessage;
       }else if(message.attachments!.first.fileType == "audio"){
         return types.AudioMessage(
             id: echoId ?? message.id.toString(),
@@ -517,8 +527,8 @@ class _ChatwootChatState extends State<ChatwootChat> {
   }
 
   void _handleMessageUpdated(
-    types.Message message,
-  ) {
+      types.Message message,
+      ) {
     final index = _messages.indexWhere((element) => element.id == message.id);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -526,6 +536,22 @@ class _ChatwootChatState extends State<ChatwootChat> {
         _messages[index] = message;
       });
     });
+  }
+
+  void _handleVideoPreviewLoaded(
+      VideoMessagePreviewResult result
+  ) {
+
+    final index = _messages.indexWhere((element) => element.id == result.jobId);
+    if(index > -1){
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _messages[index] = _messages[index].copyWith(metadata: {
+            "preview": result.preview
+          });
+        });
+      });
+    }
   }
 
   void _handleSendPressed(String message) {
@@ -557,6 +583,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
             size: attachment.bytes.length,
             status: types.Status.sending);
       }else if(lookupMimeType(attachment.name)?.startsWith("video") ?? false){
+
         message = types.VideoMessage(
             author: _user,
             createdAt: DateTime.now().millisecondsSinceEpoch,
@@ -565,6 +592,8 @@ class _ChatwootChatState extends State<ChatwootChat> {
             uri: attachment.path,
             size: attachment.bytes.length,
             status: types.Status.sending);
+
+        videoPreviewLoader.getPreview(jobId: message.id, uri: attachment.path);
       }else if(lookupMimeType(attachment.name)?.startsWith("audio") ?? false){
         message = types.AudioMessage(
             author: _user,
@@ -600,101 +629,109 @@ class _ChatwootChatState extends State<ChatwootChat> {
     return Scaffold(
       appBar: widget.appBar,
       backgroundColor: widget.theme?.backgroundColor,
-      body: Column(
+      body: Stack(
         children: [
-          Flexible(
-            child: Padding(
-              padding: EdgeInsets.only(
-                  left: horizontalPadding, right: horizontalPadding),
-              child: Chat(
-                messages: _messages,
-                onMessageTap: _handleMessageTap,
-                onPreviewDataFetched: (_,__){},
-                onSendPressed: (_){},
-                user: _user,
-                onEndReached: widget.onEndReached,
-                onEndReachedThreshold: widget.onEndReachedThreshold,
-                onMessageLongPress: widget.onMessageLongPress,
-                onAttachmentPressed: (){},
-                showUserAvatars: widget.showUserAvatars,
-                showUserNames: widget.showUserNames,
-                timeFormat: widget.timeFormat ?? DateFormat.Hm(),
-                dateFormat: widget.timeFormat ?? DateFormat("EEEE MMMM d"),
-                theme: widget.theme ?? ChatwootChatTheme(),
-                disableImageGallery: true,
-                customBottomWidget: ChatInput(
+          //offscreen video player used to fetch first frame of video messages. media_kit screenshot doesn't work without
+          //controller tied to the video widget
+          IgnorePointer(child:Opacity(opacity: 0,child: Video(controller: controller, fit: BoxFit.contain,))),
+          //actual chat
+          Column(
+            children: [
+              Flexible(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                      left: horizontalPadding, right: horizontalPadding),
+                  child: Chat(
+                    messages: _messages,
+                    onMessageTap: _handleMessageTap,
+                    onPreviewDataFetched: (_,__){},
+                    onSendPressed: (_){},
+                    user: _user,
+                    onEndReached: widget.onEndReached,
+                    onEndReachedThreshold: widget.onEndReachedThreshold,
+                    onMessageLongPress: widget.onMessageLongPress,
+                    onAttachmentPressed: (){},
+                    showUserAvatars: widget.showUserAvatars,
+                    showUserNames: widget.showUserNames,
+                    timeFormat: widget.timeFormat ?? DateFormat.Hm(),
+                    dateFormat: widget.timeFormat ?? DateFormat("EEEE MMMM d"),
                     theme: widget.theme ?? ChatwootChatTheme(),
+                    disableImageGallery: true,
+                    customBottomWidget: ChatInput(
+                        theme: widget.theme ?? ChatwootChatTheme(),
+                        l10n: widget.l10n,
+                        onMessageSent: _handleSendPressed,
+                        onAttachmentPressed: _handleAttachmentPressed),
+                    textMessageBuilder: (message, {messageWidth=0, showName=true}){
+                      return TextChatMessage(
+                          theme: widget.theme ?? ChatwootChatTheme(),
+                          message: message,
+                          isMine: message.author.id == _user.id,
+                          maxWidth: messageWidth,
+                          onPreviewFetched: _handlePreviewDataFetched
+                      );
+                    },
+                    videoMessageBuilder: (message, {messageWidth=0}){
+                      return VideoChatMessage(
+                          theme: widget.theme ?? ChatwootChatTheme(),
+                          message: message,
+                          isMine: message.author.id == _user.id,
+                          maxWidth: messageWidth
+                      );
+                    },
+                    audioMessageBuilder: (message, {messageWidth=0}){
+                      return AudioChatMessage(
+                          theme: widget.theme ?? ChatwootChatTheme(),
+                          message: message,
+                          isMine: message.author.id == _user.id,
+                      );
+                    },
+                    customMessageBuilder:  (message, {messageWidth=0}){
+                      if(message.metadata?["feedback"] != null){
+                        return RecordedCsatChatMessage(
+                          theme: widget.theme ?? ChatwootChatTheme(),
+                          l10n: widget.l10n,
+                          message: message,
+                          maxWidth: messageWidth,
+                        );
+                      }
+                      return CSATChatMessage(
+                          theme: widget.theme ?? ChatwootChatTheme(),
+                          l10n: widget.l10n,
+                          message: message,
+                          maxWidth: messageWidth,
+                          sendCsatResults: (rating, feedback){
+                            chatwootClient?.sendCsatSurveyResults(message.metadata!['conversationUuid'], rating, feedback);
+                          },
+                      );
+                    },
                     l10n: widget.l10n,
-                    onMessageSent: _handleSendPressed,
-                    onAttachmentPressed: _handleAttachmentPressed),
-                textMessageBuilder: (message, {messageWidth=0, showName=true}){
-                  return TextChatMessage(
-                      theme: widget.theme ?? ChatwootChatTheme(),
-                      message: message,
-                      isMine: message.author.id == _user.id,
-                      maxWidth: messageWidth,
-                      onPreviewFetched: _handlePreviewDataFetched
-                  );
-                },
-                videoMessageBuilder: (message, {messageWidth=0}){
-                  return VideoChatMessage(
-                      theme: widget.theme ?? ChatwootChatTheme(),
-                      message: message,
-                      isMine: message.author.id == _user.id,
-                      maxWidth: messageWidth
-                  );
-                },
-                audioMessageBuilder: (message, {messageWidth=0}){
-                  return AudioChatMessage(
-                      theme: widget.theme ?? ChatwootChatTheme(),
-                      message: message,
-                      isMine: message.author.id == _user.id,
-                  );
-                },
-                customMessageBuilder:  (message, {messageWidth=0}){
-                  if(message.metadata?["feedback"] != null){
-                    return RecordedCsatChatMessage(
-                      theme: widget.theme ?? ChatwootChatTheme(),
-                      l10n: widget.l10n,
-                      message: message,
-                      maxWidth: messageWidth,
-                    );
-                  }
-                  return CSATChatMessage(
-                      theme: widget.theme ?? ChatwootChatTheme(),
-                      l10n: widget.l10n,
-                      message: message,
-                      maxWidth: messageWidth,
-                      sendCsatResults: (rating, feedback){
-                        chatwootClient?.sendCsatSurveyResults(message.metadata!['conversationUuid'], rating, feedback);
-                      },
-                  );
-                },
-                l10n: widget.l10n,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  "assets/logo_grey.png",
-                  package: 'chatwoot_sdk',
-                  width: 15,
-                  height: 15,
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Text(
-                    "Powered by Chatwoot",
-                    style: TextStyle(color: Colors.black45, fontSize: 12),
                   ),
-                )
-              ],
-            ),
-          )
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      "assets/logo_grey.png",
+                      package: 'chatwoot_sdk',
+                      width: 15,
+                      height: 15,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        "Powered by Chatwoot",
+                        style: TextStyle(color: Colors.black45, fontSize: 12),
+                      ),
+                    )
+                  ],
+                ),
+              )
+            ],
+          ),
         ],
       ),
     );
@@ -704,6 +741,15 @@ class _ChatwootChatState extends State<ChatwootChat> {
   void dispose() {
     super.dispose();
     chatwootClient?.dispose();
+    videoPreviewLoader.dispose();
+    LinkMetadata.dispose();
+    controller.player.dispose();
+    _messages.forEach((m){
+      if(m is types.VideoMessage){
+        final controller= m.metadata?["controller"] as VideoController?;
+        controller?.player.dispose();
+      }
+    });
   }
 }
 

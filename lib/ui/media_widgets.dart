@@ -295,6 +295,7 @@ class CSATChatMessage extends StatefulWidget {
 class _CSATChatMessageState extends State<CSATChatMessage> {
   String? selectedOption;
   String? feedback;
+  bool isSentTapped = false;
   late List<String> options ;
   final TextEditingController feedbackController = TextEditingController();
 
@@ -335,7 +336,7 @@ class _CSATChatMessageState extends State<CSATChatMessage> {
           Column(
             children: options.map((option) {
               return GestureDetector(
-                onTap: () {
+                onTap: isSentTapped ? null : () {
                   setState(() {
                     selectedOption = option;
                   });
@@ -390,6 +391,7 @@ class _CSATChatMessageState extends State<CSATChatMessage> {
               controller: feedbackController,
               maxLines: 3,
               minLines: 3,
+              enabled: !isSentTapped,
               decoration: InputDecoration(
                 hintText: widget.l10n.csatFeedbackPlaceholder,
                 border: OutlineInputBorder(
@@ -408,7 +410,8 @@ class _CSATChatMessageState extends State<CSATChatMessage> {
           const SizedBox(height: 16.0),
 
           // Send Button
-          SizedBox(
+          if(!isSentTapped)
+            SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: selectedOption == null
@@ -417,6 +420,9 @@ class _CSATChatMessageState extends State<CSATChatMessage> {
                 // Handle submission
                 final rating = options.indexWhere((e)=>e == selectedOption)+1;
                 widget.sendCsatResults(rating, feedback??'');
+                setState(() {
+                  isSentTapped = true;
+                });
               },
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(

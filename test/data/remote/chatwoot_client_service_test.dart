@@ -22,9 +22,10 @@ void main() {
     late final ChatwootClientService clientService;
     final testBaseUrl = "https://test.com";
     final mockDio = MockDio();
+    final unauthenticatedmockDio = MockDio();
 
     setUpAll(() {
-      clientService = ChatwootClientServiceImpl(testBaseUrl, dio: mockDio);
+      clientService = ChatwootClientServiceImpl(testBaseUrl, dio: mockDio, uDio: unauthenticatedmockDio);
     });
 
     _createSuccessResponse(body) {
@@ -49,8 +50,16 @@ void main() {
           await TestResourceUtil.readJsonResource(fileName: "message");
       final request =
           ChatwootNewMessageRequest(content: "test message", echoId: "id");
-      when(mockDio.post(any, data: request.toJson())).thenAnswer(
-          (_) => Future.value(_createSuccessResponse(responseBody)));
+      when(mockDio.post(any, data: anyNamed("data"))).thenAnswer(
+          (invocation){
+            assert(invocation.namedArguments[Symbol("data")] is FormData);
+            final form = invocation.namedArguments[Symbol("data")] as FormData;
+            final messageContent = form.fields.firstWhere((f)=>f.key == "content").value;
+            final echoId = form.fields.firstWhere((f)=>f.key == "echo_id").value;
+            expect(messageContent, request.content);
+            expect(echoId, request.echoId);
+            return Future.value(_createSuccessResponse(responseBody));
+          });
 
       //WHEN
       final result = await clientService.createMessage(request);
@@ -65,7 +74,7 @@ void main() {
       //GIVEN
       final request =
           ChatwootNewMessageRequest(content: "test message", echoId: "id");
-      when(mockDio.post(any, data: request.toJson())).thenAnswer(
+      when(mockDio.post(any, data: anyNamed("data"))).thenAnswer(
           (_) => Future.value(_createErrorResponse(statusCode: 401, body: {})));
 
       //WHEN
@@ -89,7 +98,7 @@ void main() {
       final testError = DioException(requestOptions: RequestOptions(path: ""));
       final request =
           ChatwootNewMessageRequest(content: "test message", echoId: "id");
-      when(mockDio.post(any, data: request.toJson())).thenThrow(testError);
+      when(mockDio.post(any, data: anyNamed("data"))).thenThrow(testError);
 
       //WHEN
       ChatwootClientException? chatwootClientException;

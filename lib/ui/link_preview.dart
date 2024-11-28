@@ -98,7 +98,7 @@ class _LinkPreviewState extends State<LinkPreview> {
             ),
             child: Row(
               children: [
-                CircularProgressIndicator(),
+                CircularProgressIndicator(color: Colors.black,),
                 SizedBox(width: 16.0),
                 Text('Loading...'),
               ],
@@ -107,7 +107,30 @@ class _LinkPreviewState extends State<LinkPreview> {
         }
 
         if (snapshot.hasError || snapshot.data == null) {
-          return SizedBox();
+          return InkWell(
+            onTap: (){
+              launchUrl(Uri.parse(widget.url));
+            },
+            child: Container(
+                padding: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+              child: Text(
+                widget.url,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
         }
 
         final metadata = snapshot.data!;
@@ -124,7 +147,7 @@ class _LinkPreviewState extends State<LinkPreview> {
               ),
             ],
           ),
-          child: GestureDetector(
+          child: InkWell(
             onTap: (){
               launchUrl(Uri.parse(widget.url));
             },

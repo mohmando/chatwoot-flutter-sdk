@@ -388,7 +388,7 @@ void main() {
       when(mockConversationDao.getConversation()).thenReturn(testConversation);
       when(mockLocalStorage.dispose()).thenAnswer((_) => (_) {});
       when(mockChatwootCallbacks.onConversationResolved)
-          .thenAnswer((_) => () {});
+          .thenAnswer((_) => (_) {});
       final dynamic resolvedEvent = await TestResourceUtil.readJsonResource(
           fileName: "websocket_conversation_status_changed");
       repo.listenForEvents();
@@ -398,7 +398,7 @@ void main() {
       await Future.delayed(Duration(seconds: 1));
 
       //THEN
-      verify(mockChatwootCallbacks.onConversationResolved?.call());
+      verify(mockChatwootCallbacks.onConversationResolved?.call(testConversation.uuid));
     });
 
     test(

@@ -6,7 +6,6 @@ import 'package:chatwoot_sdk/chatwoot_sdk.dart';
 import 'package:chatwoot_sdk/ui/chatwoot_chat_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 
 void main() {
@@ -103,23 +102,6 @@ class _MyHomePageState extends State<MyHomePage> {
       final name = result.files.first.name;
       final path = result.files.first.path ?? '';
       return FileAttachment(bytes: Uint8List.fromList(bytes), name: name, path: path);
-    }
-
-    return null;
-  }
-
-  Future<FileAttachment?> _handleImageSelection() async {
-    final result = await ImagePicker().pickImage(
-      imageQuality: 70,
-      maxWidth: 1440,
-      source: ImageSource.gallery,
-    );
-
-    if (result != null) {
-      final bytes = await result.readAsBytes();
-      final name = result.name;
-      final path = result.path;
-      return FileAttachment(bytes: bytes, name: name, path: path);
     }
 
     return null;

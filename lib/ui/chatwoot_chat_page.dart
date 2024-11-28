@@ -292,16 +292,17 @@ class _ChatwootChatState extends State<ChatwootChat> {
                 botImageUrl),
             status: types.Status.delivered);
         _addMessage(resolvedMessage);
-        final csatMessage = types.CustomMessage(
-            id: "csat",
-            author: types.User(
-                id: idGen.v4(),
-                imageUrl: botImageUrl),
-            metadata: {
-              "conversationUuid": conversationUuid
-            },
-            status: types.Status.delivered);
-        _addMessage(csatMessage);
+        // temporarily disabled due to 404 response on API inbox conversations
+        // final csatMessage = types.CustomMessage(
+        //     id: "csat",
+        //     author: types.User(
+        //         id: idGen.v4(),
+        //         imageUrl: botImageUrl),
+        //     metadata: {
+        //       "conversationUuid": conversationUuid
+        //     },
+        //     status: types.Status.delivered);
+        // _addMessage(csatMessage);
       },
       onCsatSurveyResponseRecorded: (feedback){
 

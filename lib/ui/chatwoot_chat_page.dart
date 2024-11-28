@@ -524,14 +524,14 @@ class _ChatwootChatState extends State<ChatwootChat> {
 
       if (localPath.startsWith('http')) {
 
-
-          final client = http.Client();
-          final request = await client.get(Uri.parse(localPath));
-          final bytes = request.bodyBytes;
           final documentsDir = (await getApplicationDocumentsDirectory()).path;
           localPath = '$documentsDir/${message.name}';
 
           if (!File(localPath).existsSync()) {
+
+            final client = http.Client();
+            final request = await client.get(Uri.parse(localPath));
+            final bytes = request.bodyBytes;
             final file = File(localPath);
             await file.writeAsBytes(bytes);
           }

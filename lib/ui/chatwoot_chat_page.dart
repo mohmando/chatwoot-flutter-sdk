@@ -50,6 +50,12 @@ class ChatwootChat extends StatefulWidget {
   /// For more details see https://www.chatwoot.com/docs/product/channels/api/client-apis
   final String inboxIdentifier;
 
+
+  ///Key used to generate user identifier hash
+  ///
+  /// For more details see https://www.chatwoot.com/docs/product/channels/api/client-apis
+  final String? userIdentityValidationKey;
+
   /// Enables persistence of chatwoot client instance's contact, conversation and messages to disk
   /// for convenience.
   ///
@@ -145,6 +151,7 @@ class ChatwootChat extends StatefulWidget {
       {Key? key,
       required this.baseUrl,
       required this.inboxIdentifier,
+      this.userIdentityValidationKey,
       this.enablePersistence = true,
       this.user,
       this.appBar,
@@ -334,6 +341,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
     ChatwootClient.create(
             baseUrl: widget.baseUrl,
             inboxIdentifier: widget.inboxIdentifier,
+            userIdentityValidationKey: widget.userIdentityValidationKey,
             user: widget.user,
             enablePersistence: widget.enablePersistence,
             callbacks: chatwootCallbacks)

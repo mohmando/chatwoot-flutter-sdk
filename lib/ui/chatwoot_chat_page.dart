@@ -724,19 +724,23 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
                     avatarBuilder: (user){
                       return Row(
                         children: [
-                          CachedNetworkImage(
-                              imageUrl: user.imageUrl ?? '',
-                              width: 30,
-                              height: 30,
-                              errorWidget: (_,__, ___){
-                                String name = "${user.firstName} ${user.lastName}";
-                                List<String> words = name.trim().split(RegExp(r'\s+'));
-                                String initials = words.map((word) => word[0].toUpperCase()).join();
-                                return PlaceholderCircle(
-                                  text: initials,
-                                  textColor: theme.primaryColor,
-                                );
-                              },
+                          ClipRRect(
+                            borderRadius: BorderRadius.all(Radius.circular(15)),
+                            child: CachedNetworkImage(
+                                imageUrl: user.imageUrl ?? '',
+                                width: 30,
+                                height: 30,
+                                fit:BoxFit.cover,
+                                errorWidget: (_,__, ___){
+                                  String name = "${user.firstName} ${user.lastName}";
+                                  List<String> words = name.trim().split(RegExp(r'\s+'));
+                                  String initials = words.map((word) => word[0].toUpperCase()).join();
+                                  return PlaceholderCircle(
+                                    text: initials,
+                                    textColor: theme.primaryColor,
+                                  );
+                                },
+                            ),
                           ),
                           SizedBox(width: 5,)
                         ],

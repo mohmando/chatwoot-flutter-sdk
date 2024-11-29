@@ -59,6 +59,12 @@ class ChatwootClientApiInterceptor extends Interceptor {
           INTERCEPTOR_CONVERSATION_IDENTIFIER_PLACEHOLDER,
           "${conversation.id}");
 
+      if(user?.identifierHash != null){
+        //if user identifier hash has been set attach it requests
+        newOptions.queryParameters["identifier_hash"] = user!.identifierHash;
+        newOptions.queryParameters["identifier"] = user.identifier;
+      }
+
       handler.next(newOptions);
     });
   }

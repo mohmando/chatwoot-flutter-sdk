@@ -203,8 +203,6 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
   late VideoController controller;
   late VideoPreviewLoader videoPreviewLoader;
 
-  final botImageUrl = "https://d2cbg94ubxgsnp.cloudfront.net/Pictures/480x270//9/9/3/512993_shutterstock_715962319converted_920340.png";
-
   @override
   void initState() {
     super.initState();
@@ -300,16 +298,13 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
             id: "resolved",
             text: widget.l10n.conversationResolvedMessage,
             author: types.User(
-                id: idGen.v4(),
-                imageUrl:
-                botImageUrl),
+                id: idGen.v4(),),
             status: types.Status.delivered);
         _addMessage(resolvedMessage);
         final csatMessage = types.CustomMessage(
             id: "csat",
             author: types.User(
-                id: idGen.v4(),
-                imageUrl: botImageUrl),
+                id: idGen.v4(),),
             metadata: {
               "conversationUuid": conversationUuid
             },
@@ -321,8 +316,7 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
         final resolvedMessage = types.CustomMessage(
             id: "csat",
             author: types.User(
-                id: idGen.v4(),
-                imageUrl: botImageUrl),
+                id: idGen.v4()),
             metadata: {
               "feedback": feedback
             },
@@ -732,6 +726,8 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
                         children: [
                           CachedNetworkImage(
                               imageUrl: user.imageUrl ?? '',
+                              width: 30,
+                              height: 30,
                               errorWidget: (_,__, ___){
                                 String name = "${user.firstName} ${user.lastName}";
                                 List<String> words = name.trim().split(RegExp(r'\s+'));

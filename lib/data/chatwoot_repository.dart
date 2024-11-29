@@ -199,7 +199,7 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
           chatwootEvent.message?.data?.id ==
               (localStorage.conversationDao.getConversation()?.id ?? 0)) {
         //delete conversation result
-        final conversationUuid = localStorage.conversationDao.getConversation()!.uuid;
+        final conversationUuid = localStorage.conversationDao.getConversation()?.uuid ??'';
         localStorage.conversationDao.deleteConversation();
         localStorage.messagesDao.clear();
         callbacks.onConversationResolved?.call(conversationUuid);

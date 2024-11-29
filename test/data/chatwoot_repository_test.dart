@@ -201,7 +201,7 @@ void main() {
           when(mockChatwootCallbacks.onCsatSurveyResponseRecorded).thenAnswer((_) => (_) {});
 
           //WHEN
-          await repo.sendCsatFeedBack(testConversation.uuid, csatRequest);
+          await repo.sendCsatFeedBack(testConversation.uuid!, csatRequest);
 
           //THEN
           verify(mockChatwootClientService.sendCsatFeedBack(testConversation.uuid, csatRequest));
@@ -220,7 +220,7 @@ void main() {
           when(mockChatwootCallbacks.onError).thenAnswer((_) => (_) {});
 
           //WHEN
-          await repo.sendCsatFeedBack(testConversation.uuid, csatRequest);
+          await repo.sendCsatFeedBack(testConversation.uuid!, csatRequest);
 
           //THEN
           verify(mockChatwootClientService.sendCsatFeedBack(testConversation.uuid, csatRequest));
@@ -439,7 +439,7 @@ void main() {
       await Future.delayed(Duration(seconds: 1));
 
       //THEN
-      verify(mockChatwootCallbacks.onConversationResolved?.call(testConversation.uuid));
+      verify(mockChatwootCallbacks.onConversationResolved?.call(testConversation.uuid!));
     });
 
     test(

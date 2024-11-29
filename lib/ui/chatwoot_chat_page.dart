@@ -235,6 +235,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
         if (widget.enablePersistence) {
           setState(() {
             _messages = persistedMessages
+                .where((m)=>m.contentType != "input_csat")
                 .map((message) => _chatwootMessageToTextMessage(message))
                 .toList();
           });
@@ -247,6 +248,7 @@ class _ChatwootChatState extends State<ChatwootChat> {
         }
         setState(() {
           final chatMessages = messages
+              .where((m)=>m.contentType != "input_csat")
               .map((message){
                 return _chatwootMessageToTextMessage(message);
           })
@@ -265,6 +267,10 @@ class _ChatwootChatState extends State<ChatwootChat> {
         widget.onMessagesRetrieved?.call(messages);
       },
       onMessageReceived: (chatwootMessage) {
+        if(chatwootMessage.contentType == "input_csat"){
+          //csat message is handled manually
+          return;
+        }
         _addMessage(_chatwootMessageToTextMessage(chatwootMessage));
         widget.onMessageReceived?.call(chatwootMessage);
       },
@@ -292,17 +298,16 @@ class _ChatwootChatState extends State<ChatwootChat> {
                 botImageUrl),
             status: types.Status.delivered);
         _addMessage(resolvedMessage);
-        // temporarily disabled due to 404 response on API inbox conversations
-        // final csatMessage = types.CustomMessage(
-        //     id: "csat",
-        //     author: types.User(
-        //         id: idGen.v4(),
-        //         imageUrl: botImageUrl),
-        //     metadata: {
-        //       "conversationUuid": conversationUuid
-        //     },
-        //     status: types.Status.delivered);
-        // _addMessage(csatMessage);
+        final csatMessage = types.CustomMessage(
+            id: "csat",
+            author: types.User(
+                id: idGen.v4(),
+                imageUrl: botImageUrl),
+            metadata: {
+              "conversationUuid": conversationUuid
+            },
+            status: types.Status.delivered);
+        _addMessage(csatMessage);
       },
       onCsatSurveyResponseRecorded: (feedback){
 
@@ -566,7 +571,9 @@ class _ChatwootChatState extends State<ChatwootChat> {
       types.Message message,
       ) {
     final index = _messages.indexWhere((element) => element.id == message.id);
-
+    if(index == -1){
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         _messages[index] = message;

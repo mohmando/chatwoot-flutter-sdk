@@ -32,11 +32,11 @@ class ChatwootConversation extends Equatable {
   ///The uuid ID of the conversation
   @JsonKey(name: "uuid")
   @HiveField(4)
-  final String uuid;
+  final String? uuid;
 
   ChatwootConversation(
       {required this.id,
-        required this.uuid,
+        this.uuid,
       required this.inboxId,
       required this.messages,
       required this.contact});

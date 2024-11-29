@@ -58,7 +58,7 @@ class ChatwootMessage extends Equatable {
   final ChatwootEventMessageUser? sender;
 
   ///checks if message belongs to contact making the request
-  bool get isMine => messageType != 1;
+  bool get isMine => messageType != 1 && messageType !=3;
 
   ChatwootMessage(
       {required this.id,

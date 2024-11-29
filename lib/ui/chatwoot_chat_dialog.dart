@@ -202,6 +202,7 @@ class _ChatwootChatDialogState extends State<ChatwootChatDialog> {
               child: ChatwootChat(
                 baseUrl: widget.baseUrl,
                 inboxIdentifier: widget.inboxIdentifier,
+                userIdentityValidationKey: widget.userIdentityValidationKey,
                 user: widget.user,
                 enablePersistence: widget.enablePersistence,
                 timeFormat: widget.timeFormat,

@@ -37,7 +37,7 @@ class ChatwootUser extends Equatable {
 
   ///phone number of user
   @JsonKey(name: "phone_number")
-  @HiveField(4)
+  @HiveField(6)
   final String? phoneNumber;
 
   ///any other custom attributes to be linked to the user

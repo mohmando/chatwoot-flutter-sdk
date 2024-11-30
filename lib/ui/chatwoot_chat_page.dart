@@ -527,16 +527,17 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
       if (localPath.startsWith('http')) {
 
           final documentsDir = (await getApplicationDocumentsDirectory()).path;
-          localPath = '$documentsDir/${message.name}';
+          final cacheLocalPath = '$documentsDir/${message.name}';
 
-          if (!File(localPath).existsSync()) {
+          if (!File(cacheLocalPath).existsSync()) {
 
             final client = http.Client();
             final request = await client.get(Uri.parse(localPath));
             final bytes = request.bodyBytes;
-            final file = File(localPath);
+            final file = File(cacheLocalPath);
             await file.writeAsBytes(bytes);
           }
+          localPath = cacheLocalPath;
 
       }
       widget.onMessageTap?.call(context, message);

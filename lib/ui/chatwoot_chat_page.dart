@@ -230,11 +230,17 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
       onConfirmedSubscription: () {
         widget.onConfirmedSubscription?.call();
       },
+      onConversationIsOnline: (){
+        widget.onConversationIsOnline?.call();
+      },
+      onConversationIsOffline: (){
+        widget.onConversationIsOffline?.call();
+      },
       onConversationStartedTyping: () {
-        widget.onConversationStoppedTyping?.call();
+        widget.onConversationStartedTyping?.call();
       },
       onConversationStoppedTyping: () {
-        widget.onConversationStartedTyping?.call();
+        widget.onConversationStoppedTyping?.call();
       },
       onPersistedMessagesRetrieved: (persistedMessages) {
         if (widget.enablePersistence) {

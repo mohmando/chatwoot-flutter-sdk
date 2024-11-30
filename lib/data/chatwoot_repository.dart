@@ -12,6 +12,7 @@ import 'package:chatwoot_sdk/data/remote/requests/chatwoot_action_data.dart';
 import 'package:chatwoot_sdk/data/remote/requests/chatwoot_new_message_request.dart';
 import 'package:chatwoot_sdk/data/remote/requests/send_csat_survey_request.dart';
 import 'package:chatwoot_sdk/data/remote/responses/chatwoot_event.dart';
+import 'package:chatwoot_sdk/data/remote/responses/csat_survey_response.dart';
 import 'package:chatwoot_sdk/data/remote/service/chatwoot_client_service.dart';
 import 'package:flutter/material.dart';
 
@@ -135,7 +136,22 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
   @override
   Future<void> sendCsatFeedBack(String conversationUuid, SendCsatSurveyRequest request) async{
     try {
-      final feedback = await clientService.sendCsatFeedBack(conversationUuid, request);
+      CsatSurveyFeedbackResponse feedback = await clientService.sendCsatFeedBack(conversationUuid, request);
+      if(feedback.csatSurveyResponse == null){
+        feedback = CsatSurveyFeedbackResponse(
+          id: feedback.id,
+          csatSurveyResponse: CsatResponse(
+              id:feedback.id,
+              conversationId: feedback.conversationId,
+              rating: request.rating,
+              feedbackMessage: request.feedbackMessage
+          ),
+          inboxAvatarUrl: feedback.inboxAvatarUrl,
+          inboxName: feedback.inboxName,
+          createdAt: feedback.createdAt,
+          conversationId: feedback.conversationId
+        );
+      }
       callbacks.onCsatSurveyResponseRecorded?.call(feedback);
     } on ChatwootClientException catch (e) {
       callbacks.onError?.call(

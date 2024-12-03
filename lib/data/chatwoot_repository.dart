@@ -139,17 +139,17 @@ class ChatwootRepositoryImpl extends ChatwootRepository {
       CsatSurveyFeedbackResponse feedback = await clientService.sendCsatFeedBack(conversationUuid, request);
       if(feedback.csatSurveyResponse == null){
         feedback = CsatSurveyFeedbackResponse(
-          id: feedback.id,
-          csatSurveyResponse: CsatResponse(
-              id:feedback.id,
-              conversationId: feedback.conversationId,
-              rating: request.rating,
-              feedbackMessage: request.feedbackMessage
-          ),
-          inboxAvatarUrl: feedback.inboxAvatarUrl,
-          inboxName: feedback.inboxName,
-          createdAt: feedback.createdAt,
-          conversationId: feedback.conversationId
+            id: feedback.id,
+            csatSurveyResponse: CsatResponse(
+                id:feedback.id,
+                conversationId: feedback.conversationId,
+                rating: request.rating,
+                feedbackMessage: request.feedbackMessage
+            ),
+            inboxAvatarUrl: feedback.inboxAvatarUrl,
+            inboxName: feedback.inboxName,
+            createdAt: feedback.createdAt,
+            conversationId: feedback.conversationId
         );
       }
       callbacks.onCsatSurveyResponseRecorded?.call(feedback);

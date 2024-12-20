@@ -773,12 +773,6 @@ class _ChatwootChatState extends State<ChatwootChat> with WidgetsBindingObserver
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      "assets/logo_grey.png",
-                      package: 'chatwoot_sdk',
-                      width: 15,
-                      height: 15,
-                    ),
                     Padding(
                       padding: const EdgeInsets.only(left: 8.0),
                       child: Text(
